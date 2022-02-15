@@ -559,10 +559,10 @@ func RetryWithRelogin(ctx context.Context, tc *TeleportClient, fn func() error) 
 	return fn()
 }
 
-// readProfile reads in the profile as well as the associated certificate
+// ReadProfileStatus reads in the profile as well as the associated certificate
 // and returns a *ProfileStatus which can be used to print the status of the
 // profile.
-func readProfile(profileDir string, profileName string) (*ProfileStatus, error) {
+func ReadProfileStatus(profileDir string, profileName string) (*ProfileStatus, error) {
 	var err error
 
 	if profileDir == "" {
@@ -771,7 +771,7 @@ func Status(profileDir, proxyHost string) (*ProfileStatus, []*ProfileStatus, err
 	// Read in the target profile first. If readProfile returns trace.NotFound,
 	// that means the profile may have been corrupted (for example keys were
 	// deleted but profile exists), treat this as the user not being logged in.
-	profileStatus, err = readProfile(profileDir, profileName)
+	profileStatus, err = ReadProfileStatus(profileDir, profileName)
 	if err != nil {
 		log.Debug(err)
 		if !trace.IsNotFound(err) {
@@ -792,7 +792,7 @@ func Status(profileDir, proxyHost string) (*ProfileStatus, []*ProfileStatus, err
 			// already loaded this one
 			continue
 		}
-		ps, err := readProfile(profileDir, name)
+		ps, err := ReadProfileStatus(profileDir, name)
 		if err != nil {
 			log.Debug(err)
 			// parts of profile are missing?
@@ -2540,6 +2540,16 @@ func (tc *TeleportClient) Login(ctx context.Context) (*Key, error) {
 	}
 
 	return key, nil
+}
+
+// GetWebConfig retreives Teleport proxy web config
+func (tc *TeleportClient) GetWebConfig(ctx context.Context) (*WebConfig, error) {
+	cfg, err := GetWebConfig(ctx, tc.WebProxyAddr, tc.InsecureSkipVerify)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return cfg, nil
 }
 
 // ActivateKey saves the target session cert into the local

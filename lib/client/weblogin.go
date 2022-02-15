@@ -21,11 +21,13 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/gravitational/roundtrip"
@@ -35,6 +37,8 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/defaults"
+	"github.com/gravitational/teleport/lib/web/ui"
+
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 
@@ -443,3 +447,33 @@ func HostCredentials(ctx context.Context, proxyAddr string, insecure bool, req t
 	// DELETE IN 10.0.0 (zmb3)
 	return auth.UnmarshalLegacyCerts(resp.Bytes())
 }
+
+// GetWebConfig is used by teleterm to fetch webconfig.js from proxies
+func GetWebConfig(ctx context.Context, proxyAddr string, insecure bool) (*ui.WebConfig, error) {
+	clt, _, err := initClient(proxyAddr, insecure, nil)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	response, err := clt.Get(ctx, clt.Endpoint("web", "config.js"), url.Values{})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	bytes, err := ioutil.ReadAll(response.Reader())
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// WebConfig is served as JS file where GRV_CONFIG is a global object name
+	text := strings.TrimSuffix(strings.Replace(string(bytes), "var GRV_CONFIG = ", "", 1), ";")
+
+	cfg := ui.WebConfig{}
+	if err := json.Unmarshal([]byte(text), &cfg); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return &cfg, nil
+}
+
+type WebConfig = ui.WebConfig
