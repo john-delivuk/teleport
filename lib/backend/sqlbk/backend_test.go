@@ -28,7 +28,7 @@ import (
 
 func TestRetryTx(t *testing.T) {
 	ctx := context.Background()
-	b := &Backend{Config: &Config{}}
+	b := &Backend{Config: &Config{RetryTimeout: time.Minute}}
 	t.Run("Return without calling txFn when begin() returns a failed Tx", func(t *testing.T) {
 		begin := func(context.Context) Tx {
 			return &testTx{err: errFailedTx}
