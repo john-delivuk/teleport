@@ -32,7 +32,6 @@ import (
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/sqlbk"
 	"github.com/gravitational/trace"
-	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
@@ -101,16 +100,9 @@ func TestBackend(t *testing.T) {
 		t.Logf("NoDrop=%t LogSQL=%t URL=%q", NoDrop, LogSQL, DatabaseURL)
 	}
 
-	cfg := &Config{
-		Config: sqlbk.Config{
-			PollStreamPeriod: time.Millisecond * 300,
-			PurgePeriod:      time.Minute,
-			RetryTimeout:     time.Minute,
-			Clock:            clockwork.NewFakeClock(),
-			Log:              logrus.WithFields(logrus.Fields{trace.Component: BackendName}),
-			Addr:             "-",
-		},
-	}
+	cfg := &Config{}
+	cfg.Log = logrus.WithFields(logrus.Fields{trace.Component: BackendName})
+	cfg.Addr = "-"
 	cfg.TLS.CAFile = "-"
 	cfg.TLS.ClientKeyFile = "-"
 	cfg.TLS.ClientCertFile = "-"

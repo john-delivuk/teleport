@@ -35,12 +35,24 @@ import (
 // A non-nil error means the connection pool is ready and the database has been
 // migrated to the most recent version.
 func New(ctx context.Context, driver Driver) (*Backend, error) {
+	bk, err := newWithConfig(ctx, driver, driver.Config())
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err = bk.start(ctx)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return bk, nil
+}
+
+// newWithConfig opens a connection to the database and returns an initialized
+// Backend instance. Background processes have not been started.
+func newWithConfig(ctx context.Context, driver Driver, cfg *Config) (*Backend, error) {
 	db, err := driver.Open(ctx)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	cfg := driver.Config()
 	bk := &Backend{
 		Config: cfg,
 		db:     db,
@@ -48,12 +60,6 @@ func New(ctx context.Context, driver Driver) (*Backend, error) {
 		bgDone: make(chan struct{}),
 	}
 	bk.closeCtx, bk.closeFn = context.WithCancel(context.Background())
-
-	err = bk.start(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return bk, nil
 }
 

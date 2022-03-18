@@ -33,13 +33,24 @@ import (
 // TestDriver executes the backend compliance suite for a driver. A single
 // backend is created so connections remain open for all subtests.
 func TestDriver(t *testing.T, driver Driver) {
-	bk, err := New(context.Background(), driver)
+	// Create test configuration.
+	fakeClock := clockwork.NewFakeClock()
+	cfg := driver.Config()
+	cfg.Clock = fakeClock
+	cfg.PurgePeriod = time.Minute
+	cfg.RetryTimeout = time.Minute
+	cfg.PollStreamPeriod = time.Millisecond * 300
+
+	// Init Backend
+	bk, err := newWithConfig(context.Background(), driver, cfg)
 	require.NoError(t, err)
 	t.Cleanup(func() { bk.Close() })
 
-	fakeClock, ok := driver.Config().Clock.(clockwork.FakeClock)
-	require.True(t, ok, "expected %v driver to configure a FakeClock", driver.BackendName())
+	// Start background process.
+	err = bk.start(context.Background())
+	require.NoError(t, err)
 
+	// Run test suite.
 	t.Run("Backend Compliance Suite", func(t *testing.T) {
 		newBackend := func(options ...test.ConstructionOption) (backend.Backend, clockwork.FakeClock, error) {
 			opts, err := test.ApplyOptions(options)
