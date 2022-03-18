@@ -18,19 +18,33 @@ package sqlbk
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/backend"
-	"github.com/gravitational/trace"
 )
 
-// ErrRetry is set as a transaction error when the transaction should be retried
-// due to serialization failure. It is not returned from the backend API.
-//
-// This variable is used for signalling, so a stack trace is not useful.
-var ErrRetry error = &trace.RetryError{Message: "retry"}
+// The following errors are used as signals returned by driver implementations to
+// a backend instance. It is important to not return trace errors such as
+// trace.AlreadyExists and trace.NotFound from driver implementations because
+// they have a specific meaning when returned from the backend. It is the
+// responsibility of the backend to return the correct type of error, not the
+// driver.
+var (
+	// ErrRetry is set as a transaction error when the transaction should be retried
+	// due to serialization failure. It is not returned from the backend API.
+	ErrRetry = errors.New("retry")
+
+	// ErrNotFound is returned by a transaction when a SQL query returns
+	// sql.ErrNoRows.
+	ErrNotFound = errors.New("not found")
+
+	// ErrAlreadyExists is returned by a transaction when a SQL query returns a
+	// unique constraint violation.
+	ErrAlreadyExists = errors.New("already exists")
+)
 
 // Driver defines the interface implemented by specific SQL backend
 // implementations such as postgres.

@@ -19,6 +19,7 @@ package sqlbk
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync/atomic"
 	"time"
 
@@ -125,7 +126,7 @@ func (b *Backend) retryTx(ctx context.Context, begin func(context.Context) Tx, t
 		case tx.Commit() == nil:
 			return nil
 
-		case !trace.IsRetryError(tx.Err()):
+		case !errors.Is(tx.Err(), ErrRetry):
 			return tx.Err()
 		}
 
@@ -237,8 +238,8 @@ func (b *Backend) CompareAndSwap(ctx context.Context, expected, replaceWith back
 	err := b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
 		value := tx.GetItemValue(expected.Key)
 		if tx.Err() != nil {
-			if trace.IsNotFound(tx.Err()) {
-				return trace.CompareFailed(tx.Err().Error())
+			if errors.Is(tx.Err(), ErrNotFound) {
+				return trace.CompareFailed("backend item does not exist for key %q", string(expected.Key))
 			}
 			return nil
 		}
@@ -272,6 +273,9 @@ func (b *Backend) Update(ctx context.Context, item backend.Item) (*backend.Lease
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, trace.NotFound("backend item does not exist for key %q", string(item.Key))
+		}
 		return nil, trace.Wrap(err)
 	}
 	return &lease, nil
@@ -289,6 +293,9 @@ func (b *Backend) Get(ctx context.Context, key []byte) (*backend.Item, error) {
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, trace.NotFound("backend item does not exist for key %q", string(key))
+		}
 		return nil, trace.Wrap(err)
 	}
 	return item, nil
@@ -313,6 +320,9 @@ func (b *Backend) GetRange(ctx context.Context, startKey, endKey []byte, limit i
 		return nil
 	})
 	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, trace.NotFound("backend items do not exist for key range: %q - %q", string(startKey), string(endKey))
+		}
 		return nil, trace.Wrap(err)
 	}
 	return &backend.GetResult{Items: items}, nil
@@ -325,11 +335,15 @@ func (b *Backend) Delete(ctx context.Context, key []byte) error {
 		return trace.BadParameter("missing parameter key")
 	}
 
-	return b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
+	err := b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
 		id := tx.DeleteLease(key)
 		tx.InsertEvent(types.OpDelete, backend.Item{Key: key, ID: id})
 		return nil
 	})
+	if errors.Is(err, ErrNotFound) {
+		return trace.NotFound("backend item does not exist for key %q", string(key))
+	}
+	return trace.Wrap(err)
 }
 
 // DeleteRange deletes all backend items whose key is inclusively between
@@ -342,13 +356,17 @@ func (b *Backend) DeleteRange(ctx context.Context, startKey, endKey []byte) erro
 		return trace.BadParameter("missing parameter endKey")
 	}
 
-	return b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
+	err := b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
 		items := tx.DeleteLeaseRange(startKey, endKey)
 		for _, item := range items {
 			tx.InsertEvent(types.OpDelete, item)
 		}
 		return nil
 	})
+	if errors.Is(err, ErrNotFound) {
+		return trace.NotFound("backend items do not exist for key range: %q - %q", string(startKey), string(endKey))
+	}
+	return trace.Wrap(err)
 }
 
 // KeepAlive updates expiry for a backend item. A put event is emitted if the
@@ -363,11 +381,15 @@ func (b *Backend) KeepAlive(ctx context.Context, lease backend.Lease, expires ti
 		ID:      lease.ID,
 		Expires: expires,
 	}
-	return b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
+	err := b.retryTx(ctx, b.db.Begin, func(tx Tx) error {
 		tx.UpdateLease(item)
 		tx.InsertEvent(types.OpPut, item)
 		return nil
 	})
+	if errors.Is(err, ErrNotFound) {
+		return trace.NotFound("backend item does not exist for key %q", string(item.Key))
+	}
+	return trace.Wrap(err)
 }
 
 // now returns the current clock time.

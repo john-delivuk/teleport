@@ -19,6 +19,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/gravitational/teleport/api/types"
@@ -368,7 +369,7 @@ func (tx *pgTx) GetLastEventID() int64 {
 	var eventID int64
 	err := tx.sqlTx.QueryRowContext(tx.ctx, query).Scan(&eventID)
 	if err != nil {
-		if err = convertError(err); !trace.IsNotFound(err) {
+		if err = convertError(err); !errors.Is(err, sqlbk.ErrNotFound) {
 			tx.rollback(err)
 			return 0
 		}
@@ -399,7 +400,7 @@ func (tx *pgTx) InsertItem(item backend.Item) int64 {
 	item.ID = newID()
 	const query = `INSERT INTO item (key, id, value) VALUES ($1,$2,$3)`
 	_, err := tx.sqlTx.ExecContext(tx.ctx, query, item.Key, item.ID, item.Value)
-	if tx.rollback(err) && trace.IsAlreadyExists(tx.err) {
+	if tx.rollback(err) && errors.Is(tx.err, sqlbk.ErrAlreadyExists) {
 		tx.err = sqlbk.ErrRetry
 	}
 	return item.ID
@@ -444,7 +445,7 @@ func (tx *pgTx) UpdateLease(item backend.Item) {
 		return
 	}
 	if rowsAffected == 0 {
-		tx.rollback(trace.NotFound("key not found: %v", item.Key))
+		tx.rollback(sqlbk.ErrNotFound)
 	}
 }
 

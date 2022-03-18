@@ -105,6 +105,7 @@ func TestBackend(t *testing.T) {
 		Config: sqlbk.Config{
 			PollStreamPeriod: time.Millisecond * 300,
 			PurgePeriod:      time.Minute,
+			RetryTimeout:     time.Minute,
 			Clock:            clockwork.NewFakeClock(),
 			Log:              logrus.WithFields(logrus.Fields{trace.Component: BackendName}),
 			Addr:             "-",

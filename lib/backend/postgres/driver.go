@@ -216,14 +216,14 @@ func convertError(err error) error {
 		return nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		return trace.NotFound(err.Error())
+		return trace.Wrap(sqlbk.ErrNotFound)
 	}
 	if pgErr, ok := err.(*pgconn.PgError); ok {
 		switch pgErr.Code {
 		case errCodeUniqueConstraint:
-			return trace.AlreadyExists("already exists")
+			return trace.Wrap(sqlbk.ErrAlreadyExists)
 		case errCodeNotSerializable:
-			return sqlbk.ErrRetry
+			return trace.Wrap(sqlbk.ErrRetry)
 		}
 	}
 	return trace.Wrap(err)
