@@ -259,6 +259,7 @@ require (
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/xlab/treeprint v1.0.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
+	google.golang.org/grpc/examples v0.0.0-20220317213542-f95b001a48df // indirect
 	k8s.io/component-base v0.23.3 // indirect
 	sigs.k8s.io/kustomize/api v0.10.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
