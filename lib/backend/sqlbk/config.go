@@ -27,7 +27,7 @@ import (
 
 const (
 	// DefaultPurgePeriod is the default frequency for purging database records.
-	DefaultPurgePeriod = 10 * time.Second
+	DefaultPurgePeriod = 20 * time.Second
 
 	// DefaultDatabase is default name of the backend database.
 	DefaultDatabase = "teleport"
@@ -67,6 +67,9 @@ type Config struct {
 	// BufferSize is a default buffer size used to emit events.
 	BufferSize int `json:"buffer_size,omitempty"`
 
+	// EventsTTL is amount of time before an event is purged.
+	EventsTTL time.Duration `json:"events_ttl,omitempty"`
+
 	// PollStreamPeriod is the polling period for the event stream.
 	PollStreamPeriod time.Duration `json:"poll_stream_period,omitempty"`
 
@@ -91,6 +94,30 @@ type Config struct {
 // CheckAndSetDefaults validates required fields and sets default
 // values for fields that have not been set.
 func (c *Config) CheckAndSetDefaults() error {
+	if c.Database == "" {
+		c.Database = DefaultDatabase
+	}
+	if c.BufferSize <= 0 {
+		c.BufferSize = backend.DefaultBufferCapacity
+	}
+	if c.EventsTTL == 0 {
+		c.EventsTTL = backend.DefaultEventsTTL
+	}
+	if c.PollStreamPeriod <= 0 {
+		c.PollStreamPeriod = backend.DefaultPollStreamPeriod
+	}
+	if c.PurgePeriod <= 0 {
+		c.PurgePeriod = DefaultPurgePeriod
+	}
+	if c.RetryDelayPeriod == 0 {
+		c.RetryDelayPeriod = DefaultRetryDelayPeriod
+	}
+	if c.RetryTimeout == 0 {
+		c.RetryTimeout = DefaultRetryTimeout
+	}
+	if c.EventsTTL < c.PollStreamPeriod {
+		return trace.BadParameter("PollStreamPeriod must be greater than EventsTTL to emit storage events")
+	}
 	if c.Log == nil {
 		return trace.BadParameter("Log is required")
 	}
@@ -108,24 +135,6 @@ func (c *Config) CheckAndSetDefaults() error {
 	}
 	if c.TLS.ClientCertFile == "" {
 		return trace.BadParameter("TLS.ClientCertFile is required")
-	}
-	if c.Database == "" {
-		c.Database = DefaultDatabase
-	}
-	if c.BufferSize <= 0 {
-		c.BufferSize = backend.DefaultBufferCapacity
-	}
-	if c.PollStreamPeriod <= 0 {
-		c.PollStreamPeriod = backend.DefaultPollStreamPeriod
-	}
-	if c.PurgePeriod <= 0 {
-		c.PurgePeriod = DefaultPurgePeriod
-	}
-	if c.RetryDelayPeriod == 0 {
-		c.RetryDelayPeriod = DefaultRetryDelayPeriod
-	}
-	if c.RetryTimeout == 0 {
-		c.RetryTimeout = DefaultRetryTimeout
 	}
 	return nil
 }

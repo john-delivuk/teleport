@@ -172,7 +172,7 @@ func (b *Backend) poll(fromEventID int64) (lastEventID int64, err error) {
 	}
 
 	timeNeeded := time.Duration(events.Remaining/limit) * b.PollStreamPeriod
-	if timeNeeded > b.PurgePeriod {
+	if timeNeeded > b.EventsTTL {
 		b.buf.Reset()
 		lastEventID, err := b.initLastEventID(b.closeCtx)
 		if err != nil { // err = closeCtx.Err()

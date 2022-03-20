@@ -171,8 +171,9 @@ func TestDriver(t *testing.T, driver Driver) {
 		watcher := createWatcher()
 
 		// Update config to trigger buffer reset due to latency emitting events.
-		// Formula: <events remaining>/(BufferSize/2)*PollStreamPeriod > PurgePeriod
+		// Formula: <events remaining>/(BufferSize/2)*PollStreamPeriod > EventsTTL
 		bk.BufferSize = 2 // emit 1 event at a time
+		bk.EventsTTL = time.Second
 		bk.PurgePeriod = time.Second
 		bk.PollStreamPeriod = time.Second
 
