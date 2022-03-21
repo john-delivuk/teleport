@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -199,6 +200,8 @@ func TestValidateDatabaseName(t *testing.T) {
 		{valid: false, name: "a%"},
 		{valid: false, name: "a;"},
 		{valid: false, name: "; drop database postgres;"},
+		{valid: false, name: "This_table_name_is_one_more_byte_than_the_63_byte_maximum_limit"},
+		{valid: true, name: "This_table_name_is_exactly_the_63_byte_maximum_limit__________"},
 	}
 	for i, test := range testCases {
 		err := validateDatabaseName(test.name)
@@ -270,6 +273,20 @@ func maybeSQLLogger(t *testing.T) pgx.Logger {
 func maybeStartRoachServer() (stopServerFn func()) {
 	if DatabaseURL != nil {
 		return func() {}
+	}
+
+	// Don't start server unless executing TestBackend.
+	// Or, don't start when -bench flag exists or -run != TestBackend.
+	for _, arg := range os.Args[1:] {
+		if strings.HasPrefix(arg, "-test.bench=") {
+			return func() {}
+		}
+		if strings.HasPrefix(arg, "-test.run=") {
+			if strings.HasSuffix(arg, "=TestBackend") {
+				break
+			}
+			return func() {}
+		}
 	}
 
 	var roach roachServer

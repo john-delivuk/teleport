@@ -18,7 +18,6 @@ package postgres
 
 import (
 	"context"
-	"regexp"
 	"time"
 
 	"github.com/gravitational/teleport/api/utils"
@@ -125,11 +124,19 @@ func (c *Config) CheckAndSetDefaults() error {
 }
 
 // validateDatabaseName returns true when name contains only alphanumeric and/or
-// underscore characters and the first character is not a digit.
+// underscore/dollar characters, the first character is not a digit, and the
+// name's length is less than MaxDatabaseNameLength (63 bytes).
 func validateDatabaseName(name string) error {
-	rx, _ := regexp.Compile(`^[A-Za-z_][\w\$]*$`)
-	if !rx.MatchString(name) {
-		return trace.BadParameter("invalid PostgreSQL database name: %v. See https://www.postgresql.org/docs/14/sql-syntax-lexical.html.", name)
+	if MaxDatabaseNameLength <= len(name) {
+		return trace.BadParameter("invalid PostgreSQL database name, length exceeds %d bytes. See https://www.postgresql.org/docs/14/sql-syntax-lexical.html.", MaxDatabaseNameLength)
+	}
+	for i, r := range name {
+		switch {
+		case 'A' <= r && r <= 'Z', 'a' <= r && r <= 'z', r == '_':
+		case i > 0 && (r == '$' || '0' <= r && r <= '9'):
+		default:
+			return trace.BadParameter("invalid PostgreSQL database name: %v. See https://www.postgresql.org/docs/14/sql-syntax-lexical.html.", name)
+		}
 	}
 	return nil
 }
@@ -151,4 +158,8 @@ const (
 	// DefaultMaxOpenConns means the maximum number of open database connections
 	// is 50.
 	DefaultMaxOpenConns = 50
+
+	// MaxDatabaseNameLength is the maximum PostgreSQL identifier length.
+	// https://www.postgresql.org/docs/14/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+	MaxDatabaseNameLength = 63
 )
