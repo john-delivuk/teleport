@@ -110,7 +110,8 @@ func (b *Backend) CloseWatchers() {
 // Callers supply a begin function to create a new transaction, which creates
 // either a read/write or read-only transaction. Delays between retries is
 // controlled by setting the RetryDelayPeriod configuration variable. The
-// amount of time delayed is passed through a jitter algorithm.
+// amount of time delayed is passed through a jitter algorithm. And the total
+// amount of time allocated for retries is defined by RetryTimeout.
 //
 // Returning an error from txFn will rollback the transaction and stop retries.
 func (b *Backend) retryTx(ctx context.Context, begin func(context.Context) Tx, txFn func(tx Tx) error) error {

@@ -34,11 +34,10 @@ import (
 // driver.
 var (
 	// ErrRetry is set as a transaction error when the transaction should be retried
-	// due to serialization failure. It is not returned from the backend API.
+	// due to serialization failure.
 	ErrRetry = errors.New("retry")
 
-	// ErrNotFound is returned by a transaction when a SQL query returns
-	// sql.ErrNoRows.
+	// ErrNotFound is returned by a transaction when a SQL query returns sql.ErrNoRows.
 	ErrNotFound = errors.New("not found")
 
 	// ErrAlreadyExists is returned by a transaction when a SQL query returns a
@@ -80,8 +79,7 @@ type DB interface {
 // places it in an error state. Calling any method other than Err after Commit
 // is called is an undefined operation.
 type Tx interface {
-	// Err returns a transaction error. An error does not change once the
-	// transaction is in an error state. Calling other Tx methods has no effect
+	// Err returns a transaction error. Calling other Tx methods has no effect
 	// on the state of the transaction.
 	Err() error
 
@@ -140,7 +138,7 @@ type Tx interface {
 	GetLastEventID() int64
 
 	// InsertEvent for backend item with evenType.
-	InsertEvent(eventType types.OpType, item backend.Item)
+	InsertEvent(types.OpType, backend.Item)
 
 	// InsertItem creates a new backend item ID, inserts the item, and returns the
 	// new ID. The transaction will be set to an ErrRetry failed state if the ID
@@ -153,11 +151,11 @@ type Tx interface {
 	LeaseExists(key []byte) bool
 
 	// UpdateLease creates or updates a backend item.
-	UpdateLease(item backend.Item)
+	UpdateLease(backend.Item)
 
 	// UpsertLease for backend item. The transaction is set to a NotFound error
 	// state if the backend item does not exist.
-	UpsertLease(item backend.Item)
+	UpsertLease(backend.Item)
 }
 
 // Events is returned from the GetEvents Tx method.

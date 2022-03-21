@@ -39,7 +39,8 @@ expired. Active leases have a null expires value or expires is greater than the
 current time.
 
 The event table contains events for all changes to backend items and is keyed by an
-autoincrementing integer. The event's type represents the value of types.OpType.
+autoincrementing integer (may not be a sequence/will contain gaps). The event's
+type represents the value of types.OpType.
 
 The design allows for items to be updated before an event for previous item has
 been emitted without duplicating storage for value.

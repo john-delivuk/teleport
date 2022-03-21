@@ -86,7 +86,7 @@ func (b *Backend) initLastEventID(ctx context.Context) (lastEventID int64, err e
 
 // run background process.
 // - Poll the database to delete expired leases and emit events every PollStreamPeriod (1s).
-// - Purge expired backend items and emitted events every PurgePeriod (10s).
+// - Purge expired backend items and emitted events every PurgePeriod (20s).
 func (b *Backend) run(eventID int64) {
 	defer close(b.bgDone)
 
@@ -149,6 +149,12 @@ func (b *Backend) purge() error {
 // poll for expired leases and create delete events. Then emit events whose ID
 // is greater than fromEventID. Events are emitted in the order they were
 // created. Return the event ID of the last event emitted.
+//
+// This function also resets the buffer when it detects latency emitting events.
+// The buffer is reset when the number of events remaining to emit combined with
+// the maximum number of events emitted each poll period exceeds EventsTTL. Or
+// simply, there are too many events to emit before they will be deleted, so we
+// need to start over to prevent missing events and corrupting downstream caches.
 func (b *Backend) poll(fromEventID int64) (lastEventID int64, err error) {
 	ctx, cancel := context.WithTimeout(b.closeCtx, b.PollStreamPeriod)
 	defer cancel()
@@ -171,6 +177,7 @@ func (b *Backend) poll(fromEventID int64) (lastEventID int64, err error) {
 		return fromEventID, tx.Err()
 	}
 
+	// Latency check.
 	timeNeeded := time.Duration(events.Remaining/limit) * b.PollStreamPeriod
 	if timeNeeded > b.EventsTTL {
 		b.buf.Reset()
