@@ -190,6 +190,9 @@ elif [[ "${ARCH}" == "arm" ]]; then
     TEXT_ARCH="ARMv7"
 elif [[ "${ARCH}" == "arm64" ]]; then
     TEXT_ARCH="ARMv8/ARM64"
+    if [[ "${PACKAGE_TYPE}" == "rpm" ]]; then
+        ARCH="aarch64"
+    fi
 fi
 
 # set optional runtime section for filename
