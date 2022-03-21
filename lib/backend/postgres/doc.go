@@ -24,8 +24,9 @@ The database schema consists of three tables: item, lease, and event.
     │  item    │ │  lease   │ │  event   │
     ├──────────┤ ├──────────┤ ├──────────┤
     │* key     │ │* key     │ │* eventid │
-    │* id      │ │  id      │ │  key     │
-    │  value   │ │  expires │ │  id      │
+    │* id      │ │  id      │ │  created │
+    │  value   │ │  expires │ │  key     │
+    │          │ │          │ │  id      │
     │          │ │          │ │  type    │
     └──────────┘ └──────────┘ └──────────┘
 

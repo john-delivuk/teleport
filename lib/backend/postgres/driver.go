@@ -60,7 +60,6 @@ func (d *pgDriver) open(ctx context.Context, u *url.URL) (sqlbk.DB, error) {
 		return nil, trace.Wrap(err)
 	}
 	connConfig.Logger = d.sqlLogger
-	connConfig.Config.ConnectTimeout = 5 * time.Second
 
 	// Attempt to create backend database if it does not exist.
 	err = d.maybeCreateDatabase(ctx, connConfig)
