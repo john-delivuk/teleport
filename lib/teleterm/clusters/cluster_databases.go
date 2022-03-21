@@ -62,7 +62,9 @@ func (c *Cluster) GetDatabases(ctx context.Context) ([]Database, error) {
 	}
 	defer proxyClient.Close()
 
-	dbservers, err := proxyClient.GetDatabaseServers(ctx, defaults.Namespace)
+	dbservers, err := proxyClient.FindDatabaseServersByFilters(ctx, proto.ListResourcesRequest{
+		Namespace: defaults.Namespace,
+	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

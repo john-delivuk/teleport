@@ -19,6 +19,8 @@ package clusters
 import (
 	"context"
 
+	"github.com/gravitational/teleport/api/client/proto"
+	"github.com/gravitational/teleport/api/defaults"
 	"github.com/gravitational/teleport/api/types"
 	"github.com/gravitational/teleport/lib/teleterm/api/uri"
 
@@ -36,7 +38,9 @@ type App struct {
 // GetDatabase returns a database
 func (c *Cluster) GetApps(ctx context.Context) ([]App, error) {
 	// Get a list of all applications.
-	apps, err := c.clusterClient.ListApps(ctx)
+	apps, err := c.clusterClient.ListApps(ctx, &proto.ListResourcesRequest{
+		Namespace: defaults.Namespace,
+	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
