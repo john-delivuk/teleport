@@ -131,10 +131,13 @@ func (tx *pgTx) DeleteItems() {
 	}
 
 	const query = `
-		DELETE FROM item WHERE (key, id) NOT IN (
-			SELECT key, id FROM lease WHERE (expires IS NULL OR expires > $1)
-			UNION
-			SELECT key, id FROM event
+		DELETE FROM item WHERE (key, id) IN (
+			SELECT key, id
+			FROM item
+			LEFT JOIN lease USING (key, id)
+			LEFT JOIN event USING (key, id)
+			WHERE event.key IS NULL
+		    AND (lease.key IS NULL OR lease.expires < $1)
 		)`
 	_, err := tx.sqlTx.ExecContext(tx.ctx, query, tx.now())
 	tx.rollback(err)
