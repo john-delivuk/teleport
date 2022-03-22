@@ -137,6 +137,14 @@ serviceAccountName: ""
 # Name of the Secret to store the teleport join token.
 secretName: teleport-kube-agent-join-token
 
+# Configure the running user security context for the agent container
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 9807
+
+
 # Teleport logging configuration
 log:
   # Log level for the Teleport process.

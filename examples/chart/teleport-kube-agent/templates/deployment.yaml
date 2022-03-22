@@ -121,13 +121,13 @@ spec:
           {{- toYaml .Values.extraArgs | nindent 8 }}
         {{- end }}
         securityContext:
-          allowPrivilegeEscalation: false
+          allowPrivilegeEscalation: {{ .Values.containerSecurityContext.allowPrivilegeEscalation }}
           capabilities:
             drop:
             - all
-          readOnlyRootFilesystem: true
-          runAsNonRoot: true
-          runAsUser: 9807
+          readOnlyRootFilesystem: {{ .Values.containerSecurityContext.readOnlyRootFilesystem }}
+          runAsNonRoot: {{ .Values.containerSecurityContext.runAsNonRoot }}
+          runAsUser: {{ .Values.containerSecurityContext.runAsUser }}
         ports:
         - name: diag
           containerPort: 3000
